@@ -14,7 +14,7 @@
   <!-- Released as git tags vX.Y.Z; hosts build a release from its tag (sprout-platform ADR-011). -->
   <groupId>com.github.SaiNayakk</groupId>
   <artifactId>sprout-clearing</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
   <name>sprout-clearing</name>
   <description>Sprout Clearing Corporation (simulated): nets each day's trades and settles them T+1 through the depository and the bank.</description>
 
