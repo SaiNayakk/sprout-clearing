@@ -1,0 +1,88 @@
+# Configuration for the clearing service. Named clearing.yml (not application.yml) so several services can
+# share one JVM host without their settings colliding.
+spring:
+  application:
+    name: sprout-clearing
+  datasource:
+    url: ${CLEARING_DB_URL:jdbc:postgresql://localhost:5432/sprout?currentSchema=clearing}
+    username: ${CLEARING_DB_USER:sprout}
+    password: ${CLEARING_DB_PASSWORD:sprout}
+    hikari:
+      maximum-pool-size: 5
+      pool-name: clearing
+      connection-timeout: 2000   # fail fast when the database is gone (CHAOS-01's lesson)
+      validation-timeout: 1000
+  flyway:
+    locations: classpath:db/clearing
+    schemas: clearing
+    default-schema: clearing
+  jackson:
+    default-property-inclusion: non_null   # absent, never null: the contracts say so
+    deserialization:
+      fail-on-unknown-properties: true
+  jmx:
+    enabled: false
+
+server:
+  port: ${CLEARING_PORT:8110}
+  address: ${CLEARING_BIND:127.0.0.1}
+  tomcat:
+    threads:
+      max: 16
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTEL_ENABLED:false}
+        url: ${OTEL_METRICS_URL:http://localhost:4318/v1/metrics}
+        step: 15s
+    tracing:
+      endpoint: ${OTEL_TRACES_URL:http://localhost:4318/v1/traces}
+  tracing:
+    enabled: ${OTEL_ENABLED:false}
+    sampling:
+      probability: 1.0
+  metrics:
+    tags:
+      service: sprout-clearing
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:}
+  pattern:
+    correlation: "[%X{requestId:-}] "
+
+sprout:
+  clearing:
+    settle-every: ${CLEARING_SETTLE_EVERY:5s}   # how often settlements are moved along
+    look-back-days: 7                           # on first start, settle trades from this many days back
+    close-out-percent: 20                       # short deliveries are closed out this far above the sale price
+    delivery-check: 1s
+    marketdata-url: ${CLEARING_MARKETDATA_URL:http://127.0.0.1:8103}
+    exchange:
+      url: ${CLEARING_EXCHANGE_URL:http://127.0.0.1:8108}
+      key: ${EXCHANGE_CLEARING_KEY:dev-only-exchange-clearing-key}
+    depository:
+      url: ${CLEARING_DEPOSITORY_URL:http://127.0.0.1:8111}
+      key: ${DEPOSITORY_CLEARING_KEY:dev-only-depository-clearing-key}
+    bank:
+      url: ${CLEARING_BANK_URL:http://127.0.0.1:8107}
+      partner-key: ${BANK_CLEARING_PARTNER_KEY:dev-only-clearing-partner-key}
+      vpa: clearing@sproutbank
+    # Brokers whose clients' trades settle here.
+    members:
+      - name: sprout
+        key: ${CLEARING_SPROUT_MEMBER_KEY:dev-only-clearing-member-key}
+        bank-vpa: sprout@sproutbank
+        callback-url: ${CLEARING_SPROUT_CALLBACK_URL:http://127.0.0.1:8112/internal/v1/clearing-events}
+        webhook-secret: ${CLEARING_SPROUT_WEBHOOK_SECRET:dev-only-clearing-webhook-secret}
